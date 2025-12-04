@@ -10,7 +10,6 @@ import torchaudio
 import pyannote.audio.core.task
 from pyannote.audio import Pipeline
 from pyannote.audio.pipelines.utils.hook import ProgressHook
-from concurrent.futures import ThreadPoolExecutor, as_completed
 
 # ignore torchaudio warnings
 warnings.filterwarnings("ignore", category=UserWarning, module="torchaudio")
@@ -18,9 +17,9 @@ warnings.filterwarnings("ignore", category=UserWarning, module="torchaudio")
 # settings
 env_path = os.path.join(os.getcwd(), ".env")
 load_dotenv(env_path)
-PADDING = 0.3
-MAX_WORKERS = 3
-STT_TIMEOUT = 60.0
+PADDING = 0.3 # padding when splitting segment, unit: second
+MAX_WORKERS = 3 # max workers for parallel processing
+STT_TIMEOUT = 60.0 # stt api call timeout
 
 # add pyannote.audio to torch's safe global list
 torch.serialization.add_safe_globals([
