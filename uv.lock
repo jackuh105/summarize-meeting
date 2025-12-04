@@ -2448,6 +2448,7 @@ dependencies = [
     { name = "pyannote-audio" },
     { name = "python-dotenv" },
     { name = "torchcodec" },
+    { name = "tqdm" },
 ]
 
 [package.metadata]
@@ -2455,6 +2456,7 @@ requires-dist = [
     { name = "pyannote-audio", specifier = ">=4.0.2" },
     { name = "python-dotenv", specifier = ">=1.2.1" },
     { name = "torchcodec", specifier = "==0.7.0" },
+    { name = "tqdm", specifier = ">=4.67.1" },
 ]
 
 [[package]]

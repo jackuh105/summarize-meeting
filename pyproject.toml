@@ -8,4 +8,5 @@ dependencies = [
     "pyannote-audio>=4.0.2",
     "python-dotenv>=1.2.1",
     "torchcodec==0.7.0",
+    "tqdm>=4.67.1",
 ]
