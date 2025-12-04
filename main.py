@@ -1,9 +1,11 @@
+import subprocess
 import io
 import os
 import httpx
 import asyncio
 import argparse
 import warnings
+import subprocess
 from dotenv import load_dotenv
 import torch
 import torchaudio
@@ -19,7 +21,7 @@ env_path = os.path.join(os.getcwd(), ".env")
 load_dotenv(env_path)
 PADDING = 0.3 # padding when splitting segment, unit: second
 MAX_WORKERS = 3 # max workers for parallel processing
-STT_TIMEOUT = 60.0 # stt api call timeout
+STT_TIMEOUT = None # stt api call timeout, unit: second, set None for no timeout
 
 # add pyannote.audio to torch's safe global list
 torch.serialization.add_safe_globals([
@@ -27,6 +29,7 @@ torch.serialization.add_safe_globals([
     pyannote.audio.core.task.Problem,
     pyannote.audio.core.task.Resolution,
 ])
+
 # setup pyannote speaker diarization pipeline
 pipeline = Pipeline.from_pretrained(
     "pyannote/speaker-diarization-community-1",
@@ -34,6 +37,26 @@ pipeline = Pipeline.from_pretrained(
 )
 device = torch.device("mps") if torch.backends.mps.is_available() else torch.device("cpu")
 pipeline.to(device)
+
+def convert_to_wav(input_path):
+    filename, ext = os.path.splitext(input_path)
+    output_path = filename + ".wav"
+    command = [
+        "ffmpeg",
+        "-i", input_path,
+        "-ar", "16000",
+        "-ac", "1",
+        "-vn",
+        "-y",
+        output_path
+    ]
+    try:
+        subprocess.run(command, check=True, capture_output=True)
+        print(f"Convered to wav file: {output_path}")
+        return output_path
+    except subprocess.CalledProcessError as e:
+        print(f"FFmpeg conversion failed: {e.stderr.decode()}")
+        raise e
 
 def get_speaker_tracks(output):
     """
@@ -160,6 +183,16 @@ def export_audio_segments(audio_path, segments, output_dir="segments", padding=0
         torchaudio.save(save_path, segment_waveform, sample_rate)
 
 async def main(input_path):
+    # detect the input file type and convert to wav if necessary
+    try:
+        filename, ext = os.path.splitext(input_path)
+        if ext.lower() != ".wav":
+            print("Detected the input file is not wav file, converting to wav...")
+            input_path = convert_to_wav(input_path)
+    except Exception as e:
+        print(f"Critical Error: Could not process audio file. {e}")
+        return
+
     print("1. Running Diarization...")
     with ProgressHook() as hook:
         output = pipeline(input_path, hook=hook)
