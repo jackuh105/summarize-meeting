@@ -1,4 +1,3 @@
-import subprocess
 import io
 import os
 import httpx
@@ -6,6 +5,7 @@ import asyncio
 import argparse
 import warnings
 import subprocess
+from tqdm import tqdm
 from dotenv import load_dotenv
 import torch
 import torchaudio
@@ -204,7 +204,6 @@ async def main(input_path):
     print(f"3. Loading Audio into Memory ({input_path})...")
     waveform, sample_rate = torchaudio.load(input_path)
 
-    print(f"4. Transcribing {len(cleaned_tracks)} segments (Parallel Workers={MAX_WORKERS})...")
     final_segments = []
     sem = asyncio.Semaphore(MAX_WORKERS)
     async with httpx.AsyncClient(base_url=os.getenv("STT_BASE_API"), timeout=STT_TIMEOUT) as client:
@@ -212,11 +211,15 @@ async def main(input_path):
             transcribe_segment(sem, client, seg, waveform, sample_rate)
             for seg in cleaned_tracks
         ]
-        for i, task in enumerate(asyncio.as_completed(tasks)):
+        progress_bar = tqdm(
+            asyncio.as_completed(tasks),
+            total=len(tasks),
+            desc="4. Transcribing Segments",
+            unit="seg"
+        )
+        for task in progress_bar:
             seg = await task
             final_segments.append(seg)
-            if i % 5 == 0 or (i + 1) == len(cleaned_tracks):
-                print(f"Processed {i+1}/{len(cleaned_tracks)} segments...")
     final_segments.sort(key=lambda x: x["start"])
 
     print("5. Generating SRT...")
